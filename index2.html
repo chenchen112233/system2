@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>美容皮膚管理顧客系統</title>
+    <style>
+        :root {
+            --bg-color: #F7F4EF;
+            --card-bg: #FFFFFF;
+            --text-main: #5D4037;
+            --text-light: #8D6E63;
+            --accent-color: #D7CCC8;
+            --primary-btn: #8D6E63;
+            --btn-text: #FFFFFF;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            margin: 0; padding: 0;
+            font-family: "PingFang TC", "Noto Sans TC", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden; 
+        }
+
+        .view {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            background: var(--bg-color);
+            transition: transform 0.3s ease;
+            overflow-y: auto; padding: 20px;
+        }
+
+        .view.hidden { transform: translateX(100%); display: none; }
+        
+        h2 { font-size: 22px; margin: 10px 0 20px 0; color: var(--text-main); text-align: center; }
+        h3 { font-size: 16px; margin: 25px 0 10px 0; border-left: 4px solid var(--text-light); padding-left: 10px; color: var(--text-main); }
+        
+        .search-box { position: sticky; top: 0; z-index: 10; background: var(--bg-color); padding-bottom: 10px; }
+        .search-input {
+            width: 100%; padding: 15px; border: none; border-radius: 50px;
+            background: #FFF; box-shadow: 0 4px 15px rgba(93, 64, 55, 0.08);
+            font-size: 16px; color: var(--text-main); outline: none; text-align: center;
+        }
+
+        .customer-list { margin-top: 10px; padding-bottom: 80px; }
+        .customer-card {
+            background: #FFF; border-radius: 16px; padding: 15px 20px; margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; transition: transform 0.1s;
+        }
+        .customer-card:active { transform: scale(0.98); }
+        .c-name { font-size: 18px; font-weight: bold; }
+        .c-phone { font-size: 14px; color: var(--text-light); }
+        
+        .fab-btn {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: var(--primary-btn); color: white; padding: 15px 30px; border-radius: 50px;
+            font-size: 16px; font-weight: bold; box-shadow: 0 5px 20px rgba(141, 110, 99, 0.4);
+            border: none; cursor: pointer; z-index: 100; display: flex; align-items: center; gap: 8px;
+        }
+
+        .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .back-btn, .save-btn { background: none; border: none; color: var(--text-light); font-size: 16px; cursor: pointer; padding: 10px; }
+        .save-btn { color: var(--primary-btn); font-weight: bold; }
+
+        .form-section { background: #FFF; padding: 20px; border-radius: 16px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 13px; color: var(--text-light); margin-bottom: 5px; font-weight: 500; }
+        input[type="text"], input[type="date"], input[type="tel"], input[type="number"] {
+            width: 100%; padding: 8px 0; border: none; border-bottom: 1px solid #D7CCC8;
+            background: transparent; font-size: 16px; outline: none; border-radius: 0; color: var(--text-main);
+        }
+        
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px; }
+        .checkbox-item { display: flex; align-items: center; font-size: 15px; cursor: pointer; min-height: 25px; }
+        .checkbox-item input { margin-right: 8px; accent-color: var(--text-light); width: 18px; height: 18px; }
+
+        .record-item { border-left: 3px solid var(--accent-color); padding-left: 15px; margin-bottom: 20px; position: relative; }
+        .record-title { font-size: 16px; font-weight: bold; color: var(--text-main); }
+        .record-date { font-size: 12px; color: var(--text-light); margin-top: 2px;}
+        .record-content { font-size: 14px; margin: 4px 0; font-weight: 500; color: #555; }
+        .record-meta { font-size: 13px; color: #888; }
+        .delete-record { position: absolute; right: 0; top: 0; color: #ff6b6b; font-size: 12px; cursor: pointer; padding: 5px; }
+
+        .tabs { display: flex; background: #EFEBE9; padding: 4px; border-radius: 30px; margin-bottom: 15px; }
+        .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; color: var(--text-light); border-radius: 25px; transition: 0.3s; font-weight: bold; }
+        .tab-btn.active { background: #FFF; color: var(--text-main); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .tab-content { display: none; padding-bottom: 50px; }
+        .tab-content.active { display: block; }
+
+        /* 顧客同意聲明樣式 */
+        .consent-box {
+            background-color: #FAFAFA;
+            border: 1px dashed #D7CCC8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 30px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #5D4037;
+        }
+        .consent-box ol { padding-left: 20px; margin: 0; }
+        .consent-box li { margin-bottom: 5px; }
+
+        .toast {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7); color: white; padding: 10px 20px;
+            border-radius: 8px; display: none; z-index: 200;
+        }
+        
+        .backup-area { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px dashed #D7CCC8; }
+        .backup-link { font-size: 12px; color: var(--text-light); text-decoration: underline; cursor: pointer; }
+
+    </style>
+</head>
+<body>
+
+<div id="home-view" class="view">
+    <div style="text-align:center; padding: 20px 0;">
+        <div style="font-size:14px; color:var(--text-light); letter-spacing: 2px;">BEAUTY STUDIO</div>
+        <h2>顧客資料管理</h2>
+    </div>
+
+    <div class="search-box">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 搜尋顧客姓名..." oninput="renderList()">
+    </div>
+
+    <div id="customerList" class="customer-list">
+        </div>
+
+    <button class="fab-btn" onclick="openEditor()">
+        <span>＋ 建立新顧客資料</span>
+    </button>
+    
+    <div class="backup-area">
+        <span class="backup-link" onclick="downloadBackup()">📥 下載資料備份 (JSON)</span>
+    </div>
+</div>
+
+<div id="editor-view" class="view hidden">
+    <div class="top-nav">
+        <button class="back-btn" onclick="goHome()">✕ 取消</button>
+        <div style="font-weight:bold;">顧客資料卡</div>
+        <button class="save-btn" onclick="saveCustomer()">✓ 儲存</button>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-info')">正面：面診資料</button>
+        <button class="tab-btn" onclick="switchTab('tab-record')">背面：課程紀錄</button>
+    </div>
+
+    <div id="tab-info" class="tab-content active">
+        
+        <div class="form-section">
+            <h3>基本資料</h3>
+            <div class="form-group"><label>諮詢日期 DATE</label><input type="date" id="consultDate"></div>
+            <div class="form-group"><label>諮詢師 COUNSELOR</label><input type="text" id="counselor"></div>
+            <div class="form-group"><label>姓名 NAME</label><input type="text" id="custName" placeholder="必填"></div>
+            <div class="form-group">
+                <label>性別 GENDER</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-item"><input type="radio" name="gender" value="男"> 男</label>
+                    <label class="checkbox-item"><input type="radio" name="gender" value="女"> 女</label>
+                    <label class="checkbox-item"><input type="radio" name="gender" value="其他"> 其他</label>
+                </div>
+            </div>
+            <div class="form-group"><label>生日 BIRTHDAY</label><input type="date" id="birthday"></div>
+            <div class="form-group"><label>電話 TEL</label><input type="tel" id="tel"></div>
+        </div>
+
+        <div class="form-section">
+            <h3>皮膚狀況 SKIN PROPERTIES</h3>
+            <div class="form-group"><label>皮膚性質</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-item"><input type="radio" name="skinType" value="乾性"> 乾性</label>
+                    <label class="checkbox-item"><input type="radio" name="skinType" value="油性"> 油性</label>
+                    <label class="checkbox-item"><input type="radio" name="skinType" value="混合性"> 混合性</label>
+                    <label class="checkbox-item"><input type="radio" name="skinType" value="敏感性"> 敏感性</label>
+                    <label class="checkbox-item"><input type="radio" name="skinType" value="中性"> 中性</label>
+                </div>
+            </div>
+            <div class="form-group"><label>藥物過敏史</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-item"><input type="radio" name="drugAllergy" value="有"> 有</label>
+                    <label class="checkbox-item"><input type="radio" name="drugAllergy" value="無"> 無</label>
+                </div>
+            </div>
+            <div class="form-group"><label>過敏原 ALLERGENS</label><input type="text" id="allergens"></div>
+        </div>
+
+        <div class="form-section">
+            <h3>最想改善的問題 IMPROVING ISSUES（可複選）</h3>
+            <div class="checkbox-group" style="flex-direction: column;">
+                <label class="checkbox-item"><input type="checkbox" class="issue-cb" value="皮膚出油、毛孔粗大"> 皮膚出油、毛孔粗大</label>
+                <label class="checkbox-item"><input type="checkbox" class="issue-cb" value="暗黃、膚色不均"> 暗黃、膚色不均</label>
+                <label class="checkbox-item"><input type="checkbox" class="issue-cb" value="皮膚乾燥缺水"> 皮膚乾燥缺水</label>
+                <label class="checkbox-item"><input type="checkbox" class="issue-cb" value="粉刺痘痘"> 粉刺痘痘</label>
+                <label class="checkbox-item"><input type="checkbox" class="issue-cb" value="鬆弛、提升緊緻"> 鬆弛、提升緊緻</label>
+                <label class="checkbox-item"><input type="checkbox" class="issue-cb" value="斑點、雀斑、色素"> 斑點、雀斑、色素</label>
+                <label class="checkbox-item"><input type="checkbox" class="issue-cb" value="面部泛紅血絲、敏感"> 面部泛紅血絲、敏感</label>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>多久做一次面部護理 HOW LONG</h3>
+            <div class="checkbox-group">
+                <label class="checkbox-item"><input type="radio" name="howLong" value="堅持定期"> 堅持定期</label>
+                <label class="checkbox-item"><input type="radio" name="howLong" value="不經常"> 不經常</label>
+                <label class="checkbox-item"><input type="radio" name="howLong" value="偶爾"> 偶爾</label>
+                <label class="checkbox-item"><input type="radio" name="howLong" value="未曾"> 未曾</label>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>以前做過哪些皮膚管理 SKIN MANAGEMENT（可複選）</h3>
+            <div class="checkbox-group" style="flex-direction: column;">
+                <label class="checkbox-item"><input type="checkbox" class="history-cb" value="生活美容"> 生活美容</label>
+                <label class="checkbox-item"><input type="checkbox" class="history-cb" value="儀器導入"> 儀器導入</label>
+                <label class="checkbox-item"><input type="checkbox" class="history-cb" value="居家產品"> 居家產品</label>
+                <label class="checkbox-item"><input type="checkbox" class="history-cb" value="光電儀器"> 光電儀器</label>
+                <label class="checkbox-item"><input type="checkbox" class="history-cb" value="微針"> 微針</label>
+                <label class="checkbox-item"><input type="checkbox" class="history-cb" value="水光針"> 水光針</label>
+                <div style="display:flex; align-items:center; width:100%;">
+                    <input type="checkbox" class="history-cb" value="其他" id="historyOtherCheck"> 
+                    <span style="margin-left:5px; margin-right:5px;">其他：</span>
+                    <input type="text" id="historyOtherText" style="flex:1;">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>身體狀況 PHYSICAL CONDITION</h3>
+            <div class="form-group">
+                <label>睡眠：</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-item"><input type="radio" name="sleep" value="正常"> 正常</label>
+                    <label class="checkbox-item"><input type="radio" name="sleep" value="有時熬夜"> 有時熬夜</label>
+                    <label class="checkbox-item"><input type="radio" name="sleep" value="經常熬夜"> 經常熬夜</label>
+                    <label class="checkbox-item"><input type="radio" name="sleep" value="失眠"> 失眠</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>飲食：</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-item"><input type="checkbox" class="diet-cb" value="營養均衡"> 營養均衡</label>
+                    <label class="checkbox-item"><input type="checkbox" class="diet-cb" value="素食者"> 素食者</label>
+                    <label class="checkbox-item"><input type="checkbox" class="diet-cb" value="飲酒"> 飲酒</label>
+                    <label class="checkbox-item"><input type="checkbox" class="diet-cb" value="辛辣"> 辛辣</label>
+                    <label class="checkbox-item"><input type="checkbox" class="diet-cb" value="油膩"> 油膩</label>
+                    <label class="checkbox-item"><input type="checkbox" class="diet-cb" value="奶茶咖啡"> 奶茶咖啡</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="consent-box">
+            <strong>顧客同意與法規聲明</strong>
+            <ol>
+                <li>本人確認以上填寫資料皆為本人真實狀況，並同意提供予本工作室作為皮膚管理與服務紀錄使用。</li>
+                <li>本人了解本工作室所提供之服務屬於「非醫療美容／皮膚管理行為」，不涉及任何醫療診斷、治療或療效保證。</li>
+                <li>本人已充分了解服務內容、流程及可能產生之暫時性肌膚反應，並同意接受相關服務。</li>
+            </ol>
+        </div>
+    </div>
+
+    <div id="tab-record" class="tab-content">
+        <div class="form-section">
+            <h3 style="margin-top:0;">新增課程紀錄</h3>
+            <div class="form-group"><label>課程紀錄名稱 Title</label><input type="text" id="recTitle" placeholder="例如：水飛梭深層清潔"></div>
+            <div class="form-group"><label>服務日期 DATE</label><input type="date" id="recDate"></div>
+            <div class="form-group"><label>課程／服務內容 COURSE CONTENT</label><input type="text" id="recContent" placeholder="輸入操作內容"></div>
+            <div style="display:flex; gap:10px;">
+                <div class="form-group" style="flex:1;"><label>金額 AMOUNT (TWD)</label><input type="number" id="recAmount"></div>
+                <div class="form-group" style="flex:1;"><label>操作人員</label><input type="text" id="recOperator"></div>
+            </div>
+            <button onclick="addRecordItem()" style="width:100%; padding:10px; background:#EFEBE9; border:none; border-radius:8px; color:#5D4037; font-weight:bold;">＋ 加入此筆紀錄</button>
+        </div>
+
+        <div id="recordsContainer" style="padding-bottom:50px;">
+            </div>
+    </div>
+</div>
+
+<div id="toast" class="toast">儲存成功</div>
+
+<script>
+    let customers = [];
+    let currentId = null;
+
+    function init() {
+        const stored = localStorage.getItem('skinCareData_v2'); // 使用 v2 以防舊格式衝突
+        if (stored) { customers = JSON.parse(stored); }
+        renderList();
+        
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('recDate').value = today;
+    }
+
+    function renderList() {
+        const query = document.getElementById('searchInput').value.trim();
+        const container = document.getElementById('customerList');
+        container.innerHTML = '';
+
+        const filtered = customers.filter(c => c.name.includes(query));
+
+        if (filtered.length === 0) {
+            container.innerHTML = '<div style="text-align:center; color:#ccc; margin-top:30px;">查無資料</div>';
+            return;
+        }
+
+        filtered.sort((a, b) => b.updatedAt - a.updatedAt);
+
+        filtered.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'customer-card';
+            div.innerHTML = `
+                <div>
+                    <div class="c-name">${c.name}</div>
+                    <div class="c-phone">${c.tel || '未填電話'}</div>
+                </div>
+                <div style="font-size:20px; color:#D7CCC8;">›</div>
+            `;
+            div.onclick = () => openEditor(c.id);
+            container.appendChild(div);
+        });
+    }
+
+    function goHome() {
+        document.getElementById('home-view').style.display = 'flex';
+        document.getElementById('editor-view').classList.add('hidden');
+        setTimeout(() => document.getElementById('editor-view').style.display = 'none', 300);
+        renderList();
+    }
+
+    function openEditor(id = null) {
+        document.getElementById('home-view').style.display = 'none';
+        const editor = document.getElementById('editor-view');
+        editor.style.display = 'flex';
+        setTimeout(() => editor.classList.remove('hidden'), 10);
+        
+        currentId = id;
+        clearForm();
+        
+        if (id) {
+            const data = customers.find(c => c.id === id);
+            if (data) loadDataToForm(data);
+        }
+    }
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        const btns = document.querySelectorAll('.tab-btn');
+        if(tabId === 'tab-info') btns[0].classList.add('active');
+        else btns[1].classList.add('active');
+
+        document.getElementById(tabId).classList.add('active');
+    }
+
+    function clearForm() {
+        document.querySelectorAll('input').forEach(i => {
+            if(i.type === 'radio' || i.type === 'checkbox') i.checked = false;
+            else if(i.id !== 'recDate') i.value = '';
+        });
+        document.getElementById('recordsContainer').innerHTML = '';
+        switchTab('tab-info');
+    }
+
+    function loadDataToForm(data) {
+        document.getElementById('consultDate').value = data.consultDate || '';
+        document.getElementById('counselor').value = data.counselor || '';
+        document.getElementById('custName').value = data.name || '';
+        document.getElementById('birthday').value = data.birthday || '';
+        document.getElementById('tel').value = data.tel || '';
+        document.getElementById('allergens').value = data.allergens || '';
+        document.getElementById('historyOtherText').value = data.historyOtherText || '';
+
+        setRadio('gender', data.gender);
+        setRadio('skinType', data.skinType);
+        setRadio('drugAllergy', data.drugAllergy);
+        setRadio('howLong', data.howLong);
+        setRadio('sleep', data.sleep);
+
+        loadCheckboxes('.issue-cb', data.issues);
+        loadCheckboxes('.history-cb', data.history);
+        loadCheckboxes('.diet-cb', data.diet);
+
+        if (data.records) {
+            data.records.forEach(r => renderRecordItem(r));
+        }
+    }
+
+    function setRadio(name, value) {
+        if (!value) return;
+        const radios = document.getElementsByName(name);
+        for (let r of radios) { if (r.value === value) r.checked = true; }
+    }
+
+    function loadCheckboxes(selector, dataArray) {
+        if (!dataArray) return;
+        document.querySelectorAll(selector).forEach(cb => {
+            if (dataArray.includes(cb.value)) cb.checked = true;
+        });
+    }
+
+    function saveCustomer() {
+        const name = document.getElementById('custName').value.trim();
+        if (!name) { alert('請填寫姓名'); return; }
+
+        let issues = getCheckboxes('.issue-cb');
+        let history = getCheckboxes('.history-cb');
+        let diet = getCheckboxes('.diet-cb');
+
+        let currentRecords = [];
+        document.querySelectorAll('.record-item').forEach(item => {
+            currentRecords.push({
+                title: item.dataset.title,
+                date: item.dataset.date,
+                content: item.dataset.content,
+                amount: item.dataset.amount,
+                operator: item.dataset.operator
+            });
+        });
+
+        // 排序紀錄
+        currentRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        const newCustomer = {
+            id: currentId || Date.now().toString(),
+            updatedAt: Date.now(),
+            name: name,
+            consultDate: document.getElementById('consultDate').value,
+            counselor: document.getElementById('counselor').value,
+            gender: getRadio('gender'),
+            birthday: document.getElementById('birthday').value,
+            tel: document.getElementById('tel').value,
+            skinType: getRadio('skinType'),
+            drugAllergy: getRadio('drugAllergy'),
+            allergens: document.getElementById('allergens').value,
+            howLong: getRadio('howLong'),
+            sleep: getRadio('sleep'),
+            historyOtherText: document.getElementById('historyOtherText').value,
+            issues: issues,
+            history: history,
+            diet: diet,
+            records: currentRecords
+        };
+
+        if (currentId) {
+            const index = customers.findIndex(c => c.id === currentId);
+            customers[index] = newCustomer;
+        } else {
+            customers.push(newCustomer);
+        }
+
+        localStorage.setItem('skinCareData_v2', JSON.stringify(customers));
+        showToast('儲存成功');
+        setTimeout(goHome, 800);
+    }
+
+    function getRadio(name) {
+        return document.querySelector(`input[name="${name}"]:checked`)?.value;
+    }
+
+    function getCheckboxes(selector) {
+        let arr = [];
+        document.querySelectorAll(selector + ':checked').forEach(cb => arr.push(cb.value));
+        return arr;
+    }
+
+    function addRecordItem() {
+        const title = document.getElementById('recTitle').value;
+        const date = document.getElementById('recDate').value;
+        const content = document.getElementById('recContent').value;
+        const amount = document.getElementById('recAmount').value;
+        const operator = document.getElementById('recOperator').value;
+
+        if (!title && !content) { alert('請填寫課程名稱或內容'); return; }
+
+        const record = { title, date, content, amount, operator };
+        renderRecordItem(record, true);
+
+        // 清空欄位但保留日期
+        document.getElementById('recTitle').value = '';
+        document.getElementById('recContent').value = '';
+        document.getElementById('recAmount').value = '';
+    }
+
+    function renderRecordItem(r, isNew = false) {
+        const container = document.getElementById('recordsContainer');
+        const div = document.createElement('div');
+        div.className = 'record-item';
+        div.dataset.title = r.title || '';
+        div.dataset.date = r.date || '';
+        div.dataset.content = r.content || '';
+        div.dataset.amount = r.amount || '';
+        div.dataset.operator = r.operator || '';
+
+        div.innerHTML = `
+            <div class="delete-record" onclick="this.parentElement.remove()">✕ 刪除</div>
+            <div class="record-title">${r.title || '無標題'}</div>
+            <div class="record-date">${r.date}</div>
+            <div class="record-content">${r.content}</div>
+            <div class="record-meta">金額: $${r.amount || 0} / 操作: ${r.operator || '-'}</div>
+        `;
+        
+        if (isNew) container.prepend(div);
+        else container.appendChild(div);
+    }
+
+    function downloadBackup() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(customers));
+        const a = document.createElement('a');
+        a.href = dataStr;
+        a.download = "skin_sys_backup_" + new Date().toISOString().split('T')[0] + ".json";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 2000);
+    }
+
+    init();
+</script>
+</body>
+</html>
